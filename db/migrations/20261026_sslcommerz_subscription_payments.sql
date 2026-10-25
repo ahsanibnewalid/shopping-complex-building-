@@ -1,4 +1,7 @@
 -- SSLCommerz subscription payment tracking.
+-- New tenants remain unpublished until a validated subscription payment activates them.
+ALTER TABLE tenants
+  MODIFY COLUMN status ENUM('active','pending','suspended') NOT NULL DEFAULT 'active';
 -- Review the deployed schema and take a backup before applying in production.
 ALTER TABLE subscription_payments
   ADD COLUMN tranId VARCHAR(100) NULL,
