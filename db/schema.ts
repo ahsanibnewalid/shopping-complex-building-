@@ -187,7 +187,7 @@ export const subscriptions = mysqlTable(
     monthlyCents: int("monthlyCents").notNull().default(1900),
     status: mysqlEnum("status", ["active", "past_due", "cancelled"])
       .notNull()
-      .default("active"),
+      .default("past_due"),
     currentPeriodEnd: timestamp("currentPeriodEnd").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
@@ -206,9 +206,21 @@ export const subscriptionPayments = mysqlTable(
     amountCents: int("amountCents").notNull(),
     months: int("months").notNull().default(1),
     note: varchar("note", { length: 255 }),
-    paidAt: timestamp("paidAt").defaultNow().notNull(),
+    /** Gateway metadata is nullable so existing offline-payment rows remain valid. */
+    tranId: varchar("tranId", { length: 100 }),
+    valId: varchar("valId", { length: 100 }),
+    planId: varchar("planId", { length: 20 }),
+    currency: varchar("currency", { length: 3 }).notNull().default("BDT"),
+    status: mysqlEnum("status", ["INITIATED", "VALIDATED", "FAILED", "CANCELLED", "OFFLINE"])
+      .notNull()
+      .default("OFFLINE"),
+    gatewayRawResponse: text("gatewayRawResponse"),
+    paidAt: timestamp("paidAt"),
   },
-  (t) => [index("idx_sub_payments_sub").on(t.subscriptionId)],
+  (t) => [
+    index("idx_sub_payments_sub").on(t.subscriptionId),
+    uniqueIndex("uq_subscription_payment_tran_id").on(t.tranId),
+  ],
 );
 
 export type SubscriptionPayment = typeof subscriptionPayments.$inferSelect;
