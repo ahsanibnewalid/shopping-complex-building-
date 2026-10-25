@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { and, eq } from "drizzle-orm";
 import * as schema from "@db/schema";
 import { getDb } from "../queries/connection";
@@ -121,7 +121,7 @@ async function processVerifiedPayment(valId: string, tranId: string) {
   return { success: after?.status === "VALIDATED" };
 }
 
-async function handleSuccess(c: Parameters<typeof sslcommerzApp.post>[1] extends never ? never : any) {
+async function handleSuccess(c: Context) {
   try {
     const body = await c.req.parseBody();
     const result = await processVerifiedPayment(asString(body.val_id), asString(body.tran_id));
