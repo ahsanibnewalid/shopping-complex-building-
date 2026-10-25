@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import * as schema from "@db/schema";
 import { adminQuery, createRouter } from "./middleware";
@@ -35,7 +35,13 @@ export const adminRouter = createRouter({
     const revenue = await scalar(
       db
         .select({ n: sql<number>`coalesce(sum(amountCents),0)` })
-        .from(schema.subscriptionPayments),
+        .from(schema.subscriptionPayments)
+        .where(
+          and(
+            eq(schema.subscriptionPayments.currency, "BDT"),
+            eq(schema.subscriptionPayments.status, "VALIDATED"),
+          ),
+        ),
     );
     const mrr = await scalar(
       db
