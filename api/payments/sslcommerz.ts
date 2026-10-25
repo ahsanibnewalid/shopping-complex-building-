@@ -122,13 +122,14 @@ async function handleSuccess(c: Context) {
     const result = await processVerifiedPayment(asString(body.val_id), asString(body.tran_id));
     const frontend = process.env.FRONTEND_URL || "/";
     const status = result.success ? "success" : "failed";
-    const url = new URL("/dashboard/billing", frontend.startsWith("http") ? frontend : "https://invalid.local");
+    const url = new URL("/dashboard", frontend.startsWith("http") ? frontend : "https://invalid.local");
     url.searchParams.set("payment", status);
+    url.searchParams.set("tab", "Billing");
     if (result.success && "tran_id" in body) url.searchParams.set("tran_id", asString(body.tran_id));
     return c.redirect(frontend.startsWith("http") ? url.toString() : `/dashboard/billing?payment=${status}`);
   } catch {
     const frontend = process.env.FRONTEND_URL || "/";
-    return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard/billing?payment=error` : "/dashboard/billing?payment=error");
+    return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard?tab=Billing&payment=error` : "/dashboard/billing?payment=error");
   }
 }
 
@@ -154,10 +155,10 @@ sslcommerzApp.post("/ipn", async (c) => {
 
 sslcommerzApp.post("/fail", (c) => {
   const frontend = process.env.FRONTEND_URL || "/";
-  return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard/billing?payment=failed` : "/dashboard/billing?payment=failed");
+  return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard?tab=Billing&payment=failed` : "/dashboard/billing?payment=failed");
 });
 
 sslcommerzApp.post("/cancel", (c) => {
   const frontend = process.env.FRONTEND_URL || "/";
-  return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard/billing?payment=cancelled` : "/dashboard/billing?payment=cancelled");
+  return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard?tab=Billing&payment=cancelled` : "/dashboard/billing?payment=cancelled");
 });
