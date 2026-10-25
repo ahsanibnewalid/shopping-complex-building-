@@ -203,6 +203,7 @@ export const subscriptionPayments = mysqlTable(
     subscriptionId: bigint("subscriptionId", { mode: "number", unsigned: true })
       .notNull()
       .references(() => subscriptions.id),
+    /** Integer minor units: BDT gateway payments store paisa here; currency disambiguates legacy USD ledger rows. */
     amountCents: int("amountCents").notNull(),
     months: int("months").notNull().default(1),
     note: varchar("note", { length: 255 }),
