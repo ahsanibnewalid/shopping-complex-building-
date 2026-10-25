@@ -449,12 +449,10 @@ export const tenantRouter = createRouter({
     )
     .mutation(async ({ ctx, input }) => {
       await requireTenantRole(input.tenantId, ctx.user.id, "owner");
-      const plan = PLANS.find((p) => p.id === input.plan)!;
-      await getDb()
-        .update(schema.subscriptions)
-        .set({ plan: plan.id as never, monthlyCents: plan.monthlyCents })
-        .where(eq(schema.subscriptions.tenantId, input.tenantId));
-      return { ok: true };
+      throw new TRPCError({
+        code: "PRECONDITION_FAILED",
+        message: "Plan changes require a verified payment. Start SSLCommerz checkout for the selected plan.",
+      });
     }),
 
   /**
@@ -465,6 +463,7 @@ export const tenantRouter = createRouter({
     .input(
       z.object({
         tenantId: z.number().int().positive(),
+        plan: z.enum(PLANS.map((p) => p.id) as [string, ...string[]]),
         months: z.number().int().min(1).max(12).default(1),
         customerName: z.string().trim().min(2).max(255),
         customerEmail: z.string().trim().email().max(100),
@@ -483,7 +482,7 @@ export const tenantRouter = createRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "No subscription found for this shop." });
       }
 
-      const configuredPlan = PLANS.find((p) => p.id === sub.plan);
+      const configuredPlan = PLANS.find((p) => p.id === input.plan);
       if (!configuredPlan) {
         throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Subscription plan is not configured." });
       }
@@ -499,7 +498,7 @@ export const tenantRouter = createRouter({
         months: input.months,
         note: "SSLCommerz subscription payment",
         tranId,
-        planId: sub.plan,
+        planId: configuredPlan.id,
         currency: "BDT",
         status: "INITIATED",
         paidAt: null,
