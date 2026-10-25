@@ -104,7 +104,7 @@ async function processVerifiedPayment(valId: string, tranId: string) {
     await tx
       .update(schema.tenants)
       .set({ status: "active" })
-      .where(eq(schema.tenants.id, subscription.tenantId));
+      .where(and(eq(schema.tenants.id, subscription.tenantId), eq(schema.tenants.status, "pending")));
   });
 
   const [after] = await db
