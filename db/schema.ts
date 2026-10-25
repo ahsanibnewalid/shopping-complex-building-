@@ -184,7 +184,7 @@ export const subscriptions = mysqlTable(
     plan: mysqlEnum("plan", ["starter", "pro", "business"])
       .notNull()
       .default("starter"),
-    monthlyCents: int("monthlyCents").notNull().default(1900),
+    monthlyCents: int("monthlyCents").notNull().default(150000),
     status: mysqlEnum("status", ["active", "past_due", "cancelled"])
       .notNull()
       .default("past_due"),
