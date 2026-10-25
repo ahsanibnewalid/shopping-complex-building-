@@ -148,23 +148,24 @@ export function getTheme(id: string): ThemeDef {
   return THEMES.find((t) => t.id === id) ?? THEMES[0];
 }
 
+/** Subscription prices are BDT paisa (150000 = ৳1,500.00). */
 export const PLANS = [
   {
     id: "starter",
     label: "Starter",
-    monthlyCents: 1900,
+    monthlyCents: 150000,
     blurb: "1 staff seat, up to 50 listings, marketplace placement.",
   },
   {
     id: "pro",
     label: "Pro",
-    monthlyCents: 4900,
+    monthlyCents: 350000,
     blurb: "5 staff seats, unlimited listings, featured placement.",
   },
   {
     id: "business",
     label: "Business",
-    monthlyCents: 9900,
+    monthlyCents: 750000,
     blurb: "Unlimited staff, priority support, homepage spotlight.",
   },
 ] as const;
@@ -174,7 +175,7 @@ export type PlanId = (typeof PLANS)[number]["id"];
 export const TENANT_ROLES = ["owner", "manager", "staff"] as const;
 export type TenantRole = (typeof TENANT_ROLES)[number];
 
-export function formatMoney(cents: number, currency = "USD"): string {
+export function formatMoney(cents: number, currency = "BDT"): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
