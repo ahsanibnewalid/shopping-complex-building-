@@ -60,7 +60,7 @@ export const tenants = mysqlTable(
     location: varchar("location", { length: 255 }),
     contactEmail: varchar("contactEmail", { length: 320 }),
     phone: varchar("phone", { length: 60 }),
-    status: mysqlEnum("status", ["active", "suspended"])
+    status: mysqlEnum("status", ["active", "pending", "suspended"])
       .notNull()
       .default("active"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
