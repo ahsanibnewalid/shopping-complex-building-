@@ -60,7 +60,7 @@ export const tenants = mysqlTable(
     location: varchar("location", { length: 255 }),
     contactEmail: varchar("contactEmail", { length: 320 }),
     phone: varchar("phone", { length: 60 }),
-    status: mysqlEnum("status", ["active", "suspended"])
+    status: mysqlEnum("status", ["active", "pending", "suspended"])
       .notNull()
       .default("active"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -184,10 +184,10 @@ export const subscriptions = mysqlTable(
     plan: mysqlEnum("plan", ["starter", "pro", "business"])
       .notNull()
       .default("starter"),
-    monthlyCents: int("monthlyCents").notNull().default(1900),
+    monthlyCents: int("monthlyCents").notNull().default(150000),
     status: mysqlEnum("status", ["active", "past_due", "cancelled"])
       .notNull()
-      .default("active"),
+      .default("past_due"),
     currentPeriodEnd: timestamp("currentPeriodEnd").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
@@ -203,12 +203,25 @@ export const subscriptionPayments = mysqlTable(
     subscriptionId: bigint("subscriptionId", { mode: "number", unsigned: true })
       .notNull()
       .references(() => subscriptions.id),
+    /** Integer minor units: BDT gateway payments store paisa here; currency disambiguates legacy USD ledger rows. */
     amountCents: int("amountCents").notNull(),
     months: int("months").notNull().default(1),
     note: varchar("note", { length: 255 }),
-    paidAt: timestamp("paidAt").defaultNow().notNull(),
+    /** Gateway metadata is nullable so existing offline-payment rows remain valid. */
+    tranId: varchar("tranId", { length: 100 }),
+    valId: varchar("valId", { length: 100 }),
+    planId: varchar("planId", { length: 20 }),
+    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+    status: mysqlEnum("status", ["INITIATED", "VALIDATED", "FAILED", "CANCELLED", "OFFLINE"])
+      .notNull()
+      .default("OFFLINE"),
+    gatewayRawResponse: text("gatewayRawResponse"),
+    paidAt: timestamp("paidAt"),
   },
-  (t) => [index("idx_sub_payments_sub").on(t.subscriptionId)],
+  (t) => [
+    index("idx_sub_payments_sub").on(t.subscriptionId),
+    uniqueIndex("uq_subscription_payment_tran_id").on(t.tranId),
+  ],
 );
 
 export type SubscriptionPayment = typeof subscriptionPayments.$inferSelect;

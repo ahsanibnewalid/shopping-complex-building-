@@ -19,7 +19,7 @@ export default function Sell() {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading } = useAuth();
   const createShop = trpc.tenant.createShop.useMutation({
-    onSuccess: ({ slug }) => navigate(`/dashboard?created=${slug}`),
+    onSuccess: ({ slug }) => navigate(`/dashboard?created=${slug}&tab=Billing`),
   });
 
   const [step, setStep] = useState(0);
@@ -225,7 +225,7 @@ export default function Sell() {
               className="btn-invert"
               data-variant="solid"
             >
-              {createShop.isPending ? "Opening…" : "Open my shop"}
+              {createShop.isPending ? "Opening…" : "Continue to billing"}
             </button>
           ) : (
             <Link to="/login" className="btn-invert" data-variant="solid">

@@ -161,7 +161,7 @@ async function seed() {
     await db.insert(schema.products).values(
       items.map((p) => ({ ...p, tenantId })),
     );
-    const planDef = { starter: 1900, pro: 4900, business: 9900 }[plan];
+    const planDef = { starter: 150000, pro: 350000, business: 750000 }[plan];
     await db.insert(schema.subscriptions).values({
       tenantId,
       plan,

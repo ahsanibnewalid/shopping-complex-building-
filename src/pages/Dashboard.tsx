@@ -29,7 +29,7 @@ export default function Dashboard() {
     redirectOnUnauthenticated: true,
   });
   const [params, setParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>("Overview");
+  const [tab, setTab] = useState<Tab>(() => params.get("tab") === "Billing" ? "Billing" : "Overview");
 
   const utils = trpc.useUtils();
   const myShops = trpc.tenant.myShops.useQuery(undefined, {
@@ -37,17 +37,20 @@ export default function Dashboard() {
   });
 
   const selectedId = Number(params.get("shop")) || null;
+  const createdSlug = params.get("created");
   const selected = useMemo(
     () =>
       myShops.data?.find((m) => m.tenant.id === selectedId) ??
+      myShops.data?.find((m) => m.tenant.slug === createdSlug) ??
       myShops.data?.[0] ??
       null,
-    [myShops.data, selectedId],
+    [myShops.data, selectedId, createdSlug],
   );
 
   useEffect(() => {
     const created = params.get("created");
-    if (created) setTab("Products");
+    if (params.get("tab") === "Billing") setTab("Billing");
+    else if (created) setTab("Products");
   }, [params]);
 
   if (isLoading || (isAuthenticated && myShops.isLoading)) {
@@ -589,14 +592,21 @@ function TeamTab({
 // ---------------------------------------------------------------------------
 
 function BillingTab({ tenantId, myRole }: { tenantId: number; myRole: TenantRole }) {
-  const utils = trpc.useUtils();
   const sub = trpc.tenant.subscription.useQuery({ tenantId });
-  const payMut = trpc.tenant.paySubscription.useMutation({
-    onSuccess: () => utils.tenant.subscription.invalidate({ tenantId }),
+  const payMut = trpc.tenant.initiateSubscriptionPayment.useMutation({
+    onSuccess: ({ gatewayUrl }) => window.location.assign(gatewayUrl),
+    onError: (error) => window.alert(error.message),
   });
-  const planMut = trpc.tenant.changePlan.useMutation({
-    onSuccess: () => utils.tenant.subscription.invalidate({ tenantId }),
-  });
+
+  const startCheckout = (plan: (typeof PLANS)[number]["id"]) => {
+    const customerName = window.prompt("Name for your payment receipt")?.trim();
+    if (!customerName) return;
+    const customerEmail = window.prompt("Email for your payment receipt")?.trim();
+    if (!customerEmail) return;
+    const customerPhone = window.prompt("Bangladesh mobile number for payment")?.trim();
+    if (!customerPhone) return;
+    payMut.mutate({ tenantId, plan, months: 1, customerName, customerEmail, customerPhone });
+  };
 
   if (sub.isLoading) return <p className="micro-label text-[#777]">Loading…</p>;
   if (!sub.data) return <p className="font-serif-body text-[#555]">No subscription on record.</p>;
@@ -614,40 +624,39 @@ function BillingTab({ tenantId, myRole }: { tenantId: number; myRole: TenantRole
         <p className={`micro-label mt-4 ${overdue || s.status !== "active" ? "text-red-700" : "text-[#777]"}`}>
           {s.status === "active" && !overdue
             ? `Paid through ${new Date(s.currentPeriodEnd).toLocaleDateString()}`
-            : `Payment due — period ended ${new Date(s.currentPeriodEnd).toLocaleDateString()}`}
+            : "Payment due — the storefront is not published until payment is verified."}
         </p>
         {isOwner && (
           <button
-            onClick={() => payMut.mutate({ tenantId, months: 1 })}
+            onClick={() => startCheckout(s.plan)}
             disabled={payMut.isPending}
             className="btn-invert mt-6"
             data-variant="solid"
           >
-            {payMut.isPending ? "Processing…" : `Pay ${formatMoney(s.monthlyCents)} — 1 month`}
+            {payMut.isPending ? "Opening secure checkout…" : `Pay ${formatMoney(s.monthlyCents)} — 1 month`}
           </button>
         )}
       </div>
 
       <div className="border border-[#111] p-6">
-        <p className="micro-label text-[#777]">Change plan</p>
+        <p className="micro-label text-[#777]">Choose a plan</p>
         <div className="mt-4 space-y-2">
           {PLANS.map((p) => (
             <button
               key={p.id}
-              disabled={!isOwner || planMut.isPending || p.id === s.plan}
-              onClick={() => planMut.mutate({ tenantId, plan: p.id })}
+              disabled={!isOwner || payMut.isPending}
+              onClick={() => startCheckout(p.id)}
               className={`flex w-full cursor-pointer items-center justify-between border border-[#111] px-4 py-3 text-left transition-colors ${
                 p.id === s.plan ? "bg-[#111] text-white" : "hover:bg-[#f4f4f2] disabled:opacity-60"
               }`}
             >
-              <span className="micro-label">{p.label}</span>
+              <span className="micro-label">{p.label}{p.id === s.plan ? " · Current" : ""}</span>
               <span className="micro-label">{formatMoney(p.monthlyCents)}/mo</span>
             </button>
           ))}
         </div>
         <p className="micro-label mt-4 text-[#777]">
-          Payments are reconciled by the complex office; gateway integration
-          lands in a later phase.
+          Checkout opens on SSLCommerz. The selected plan activates only after server-side payment verification.
         </p>
       </div>
 
@@ -660,10 +669,11 @@ function BillingTab({ tenantId, myRole }: { tenantId: number; myRole: TenantRole
             <tbody>
               {s.payments.map((p) => (
                 <tr key={p.id} className="border-b border-[#ddd]">
-                  <td className="micro-label py-2 pr-4">{new Date(p.paidAt).toLocaleDateString()}</td>
+                  <td className="micro-label py-2 pr-4">{p.paidAt ? new Date(p.paidAt).toLocaleDateString() : "Pending"}</td>
                   <td className="micro-label py-2 pr-4">{p.months} mo</td>
                   <td className="py-2 pr-4 font-serif-body text-sm">{p.note}</td>
-                  <td className="micro-label py-2 text-right">{formatMoney(p.amountCents)}</td>
+                  <td className="micro-label py-2 pr-4">{p.status}</td>
+                  <td className="micro-label py-2 text-right">{formatMoney(p.amountCents, p.currency)}</td>
                 </tr>
               ))}
             </tbody>
