@@ -69,6 +69,7 @@ app.use("/api/trpc/*", async (c) => {
     createContext,
   });
 });
+app.use("/api/payments/sslcommerz/*", bodyLimit({ maxSize: 16 * 1024, onError: (c) => c.body(null, 413) }));
 app.route("/api/payments/sslcommerz", sslcommerzApp);
 
 // Browser-side log sink (see lib/clientlog.ts). Must be registered before the
