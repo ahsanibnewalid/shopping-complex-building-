@@ -100,6 +100,11 @@ async function processVerifiedPayment(valId: string, tranId: string) {
         currentPeriodEnd: periodEnd,
       })
       .where(eq(schema.subscriptions.id, subscription.id));
+
+    await tx
+      .update(schema.tenants)
+      .set({ status: "active" })
+      .where(eq(schema.tenants.id, subscription.tenantId));
   });
 
   const [after] = await db
