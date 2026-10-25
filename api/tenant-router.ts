@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { sslcommerzService } from "./payments/sslcommerz.service";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import * as schema from "@db/schema";
@@ -121,7 +123,7 @@ export const tenantRouter = createRouter({
         tenantId,
         plan: plan.id as never,
         monthlyCents: plan.monthlyCents,
-        status: "active",
+        status: "past_due",
         currentPeriodEnd: periodEnd,
       });
 
@@ -456,40 +458,79 @@ export const tenantRouter = createRouter({
     }),
 
   /**
-   * Record a monthly payment (extends the current period). Real payment
-   * gateway integration is out of scope for the MVP — this is the billing
-   * ledger hook the complex owner reconciles against.
+   * Create a pending gateway attempt. A subscription is activated only by a
+   * server-validated SSLCommerz callback/IPN, never by this initiation request.
    */
-  paySubscription: authedQuery
+  initiateSubscriptionPayment: authedQuery
     .input(
       z.object({
         tenantId: z.number().int().positive(),
         months: z.number().int().min(1).max(12).default(1),
+        customerName: z.string().trim().min(2).max(255),
+        customerEmail: z.string().trim().email().max(100),
+        customerPhone: z.string().trim().min(6).max(20),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await requireTenantRole(input.tenantId, ctx.user.id, "owner");
       const db = getDb();
-      const subs = await db
+      const [sub] = await db
         .select()
         .from(schema.subscriptions)
         .where(eq(schema.subscriptions.tenantId, input.tenantId))
         .limit(1);
-      const sub = subs.at(0);
-      if (!sub) throw new TRPCError({ code: "NOT_FOUND", message: "No subscription" });
+      if (!sub) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "No subscription found for this shop." });
+      }
 
-      const base = Math.max(Date.now(), new Date(sub.currentPeriodEnd).getTime());
-      const newEnd = new Date(base + input.months * 30 * 24 * 60 * 60 * 1000);
-      await db
-        .update(schema.subscriptions)
-        .set({ currentPeriodEnd: newEnd, status: "active" })
-        .where(eq(schema.subscriptions.id, sub.id));
-      await db.insert(schema.subscriptionPayments).values({
+      const configuredPlan = PLANS.find((p) => p.id === sub.plan);
+      if (!configuredPlan) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Subscription plan is not configured." });
+      }
+      const amountInPaisa = configuredPlan.monthlyCents * input.months;
+      if (!Number.isSafeInteger(amountInPaisa) || amountInPaisa <= 0) {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Invalid subscription price configuration." });
+      }
+
+      const tranId = `BH-${randomUUID()}`;
+      const [insertResult] = await db.insert(schema.subscriptionPayments).values({
         subscriptionId: sub.id,
-        amountCents: sub.monthlyCents * input.months,
+        amountCents: amountInPaisa,
         months: input.months,
-        note: "Tenant self-service payment",
+        note: "SSLCommerz subscription payment",
+        tranId,
+        planId: sub.plan,
+        currency: "BDT",
+        status: "INITIATED",
+        paidAt: null,
       });
-      return { ok: true, currentPeriodEnd: newEnd };
+
+      try {
+        const gatewayUrl = await sslcommerzService.initPayment({
+          tranId,
+          amountInPaisa,
+          customerName: input.customerName,
+          customerEmail: input.customerEmail,
+          customerPhone: input.customerPhone,
+          productName: `BazarHub ${configuredPlan.label} subscription`,
+        });
+        return { gatewayUrl, tranId, paymentId: Number(insertResult.insertId) };
+      } catch (error) {
+        await db
+          .update(schema.subscriptionPayments)
+          .set({ status: "FAILED" })
+          .where(
+            and(
+              eq(schema.subscriptionPayments.tranId, tranId),
+              eq(schema.subscriptionPayments.status, "INITIATED"),
+            ),
+          );
+        throw new TRPCError({
+          code: "BAD_GATEWAY",
+          message: "Could not start the SSLCommerz payment session. Please try again.",
+          cause: error,
+        });
+      }
     }),
+
 });
