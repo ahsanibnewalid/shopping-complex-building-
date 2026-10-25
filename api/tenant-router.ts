@@ -109,6 +109,7 @@ export const tenantRouter = createRouter({
         location: input.location ?? null,
         contactEmail: input.contactEmail ?? ctx.user.email ?? null,
         phone: input.phone ?? null,
+        status: "pending",
       });
       const tenantId = Number(result.insertId);
 
