@@ -37,12 +37,14 @@ export default function Dashboard() {
   });
 
   const selectedId = Number(params.get("shop")) || null;
+  const createdSlug = params.get("created");
   const selected = useMemo(
     () =>
       myShops.data?.find((m) => m.tenant.id === selectedId) ??
+      myShops.data?.find((m) => m.tenant.slug === createdSlug) ??
       myShops.data?.[0] ??
       null,
-    [myShops.data, selectedId],
+    [myShops.data, selectedId, createdSlug],
   );
 
   useEffect(() => {
