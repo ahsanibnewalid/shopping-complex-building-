@@ -52,19 +52,8 @@ async function processVerifiedPayment(valId: string, tranId: string) {
   }
 
   if (!statusValid || !transactionMatches || !validationIdMatches || !currencyMatches || !amountMatches) {
-    await db
-      .update(schema.subscriptionPayments)
-      .set({
-        status: "FAILED",
-        valId,
-        gatewayRawResponse: JSON.stringify(response).slice(0, 60000),
-      })
-      .where(
-        and(
-          eq(schema.subscriptionPayments.id, payment.id),
-          eq(schema.subscriptionPayments.status, "INITIATED"),
-        ),
-      );
+    // Do not let an unauthenticated browser callback permanently fail a valid
+    // attempt. Keep it pending so a genuine IPN/success callback can be retried.
     return { success: false as const, reason: "gateway_validation_failed" };
   }
 
@@ -158,38 +147,12 @@ sslcommerzApp.post("/ipn", async (c) => {
   }
 });
 
-sslcommerzApp.post("/fail", async (c) => {
-  const body = await c.req.parseBody();
-  const tranId = asString(body.tran_id);
-  if (tranId) {
-    await getDb()
-      .update(schema.subscriptionPayments)
-      .set({ status: "FAILED" })
-      .where(
-        and(
-          eq(schema.subscriptionPayments.tranId, tranId),
-          eq(schema.subscriptionPayments.status, "INITIATED"),
-        ),
-      );
-  }
+sslcommerzApp.post("/fail", (c) => {
   const frontend = process.env.FRONTEND_URL || "/";
   return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard/billing?payment=failed` : "/dashboard/billing?payment=failed");
 });
 
-sslcommerzApp.post("/cancel", async (c) => {
-  const body = await c.req.parseBody();
-  const tranId = asString(body.tran_id);
-  if (tranId) {
-    await getDb()
-      .update(schema.subscriptionPayments)
-      .set({ status: "CANCELLED" })
-      .where(
-        and(
-          eq(schema.subscriptionPayments.tranId, tranId),
-          eq(schema.subscriptionPayments.status, "INITIATED"),
-        ),
-      );
-  }
+sslcommerzApp.post("/cancel", (c) => {
   const frontend = process.env.FRONTEND_URL || "/";
   return c.redirect(frontend.startsWith("http") ? `${frontend.replace(/\/+$/, "")}/dashboard/billing?payment=cancelled` : "/dashboard/billing?payment=cancelled");
 });
