@@ -4,7 +4,8 @@ ALTER TABLE tenants
   MODIFY COLUMN status ENUM('active','pending','suspended') NOT NULL DEFAULT 'active';
 
 ALTER TABLE subscriptions
-  MODIFY COLUMN status ENUM('active','past_due','cancelled') NOT NULL DEFAULT 'past_due';
+  MODIFY COLUMN status ENUM('active','past_due','cancelled') NOT NULL DEFAULT 'past_due',
+  MODIFY COLUMN monthlyCents INT NOT NULL DEFAULT 150000;
 -- Review the deployed schema and take a backup before applying in production.
 ALTER TABLE subscription_payments
   ADD COLUMN tranId VARCHAR(100) NULL,
