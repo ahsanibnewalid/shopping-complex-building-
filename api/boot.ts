@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { sslcommerzApp } from "./payments/sslcommerz";
 import { bodyLimit } from "hono/body-limit";
 import type { HttpBindings } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
@@ -68,6 +69,8 @@ app.use("/api/trpc/*", async (c) => {
     createContext,
   });
 });
+app.route("/api/payments/sslcommerz", sslcommerzApp);
+
 // Browser-side log sink (see lib/clientlog.ts). Must be registered before the
 // /api/* 404 catch-all below. bodyLimit guards it too: lib/clientlog.ts caps the
 // body itself, but only AFTER Hono has read it into memory, and this route sits
