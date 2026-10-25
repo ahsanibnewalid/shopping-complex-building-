@@ -118,7 +118,7 @@ export const tenantRouter = createRouter({
         role: "owner",
       });
 
-      const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const periodEnd = new Date();
       await db.insert(schema.subscriptions).values({
         tenantId,
         plan: plan.id as never,
