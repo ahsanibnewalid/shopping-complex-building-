@@ -29,7 +29,7 @@ export default function Dashboard() {
     redirectOnUnauthenticated: true,
   });
   const [params, setParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>("Overview");
+  const [tab, setTab] = useState<Tab>(() => params.get("tab") === "Billing" ? "Billing" : "Overview");
 
   const utils = trpc.useUtils();
   const myShops = trpc.tenant.myShops.useQuery(undefined, {
@@ -47,7 +47,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     const created = params.get("created");
-    if (created) setTab("Products");
+    if (params.get("tab") === "Billing") setTab("Billing");
+    else if (created) setTab("Products");
   }, [params]);
 
   if (isLoading || (isAuthenticated && myShops.isLoading)) {
