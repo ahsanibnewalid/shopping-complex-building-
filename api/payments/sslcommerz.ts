@@ -106,6 +106,7 @@ async function processVerifiedPayment(valId: string, tranId: string) {
       .update(schema.subscriptions)
       .set({
         ...(payment.planId ? { plan: payment.planId as "starter" | "pro" | "business" } : {}),
+        monthlyCents: Math.round(payment.amountCents / payment.months),
         status: "active",
         currentPeriodEnd: periodEnd,
       })
