@@ -146,7 +146,7 @@ export default function Sell() {
                         color: t.tokens.accentInk,
                         fontFamily: t.tokens.labelFont,
                         borderRadius: t.tokens.radius,
-                      }}}
+                      }}
                     >
                       Add to cart
                     </span>
