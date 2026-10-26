@@ -5,6 +5,7 @@ import * as schema from "@db/schema";
 import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { findTenantBySlug } from "./queries/marketplace";
+import { aggregateCartQuantities } from "./lib/cart-quantities";
 
 const checkoutItem = z.object({
   productId: z.number().int().positive(),
@@ -33,18 +34,14 @@ export const orderRouter = createRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found" });
       }
 
-      // Collapse repeated product IDs before validating totals/stock. Otherwise
-      // the same cart item could bypass the per-line stock check.
-      const quantities = new Map<number, number>();
-      for (const item of input.items) {
-        const quantity = (quantities.get(item.productId) ?? 0) + item.qty;
-        if (quantity > 99) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "The total quantity of an item cannot exceed 99.",
-          });
-        }
-        quantities.set(item.productId, quantity);
+      let quantities: Map<number, number>;
+      try {
+        quantities = aggregateCartQuantities(input.items);
+      } catch {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "The total quantity of an item cannot exceed 99.",
+        });
       }
 
       const db = getDb();
