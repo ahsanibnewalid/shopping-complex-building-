@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import * as schema from "@db/schema";
 import { createRouter, publicQuery } from "./middleware";
@@ -33,70 +33,108 @@ export const orderRouter = createRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found" });
       }
 
-      const db = getDb();
-      const ids = input.items.map((i) => i.productId);
-      const rows = await db
-        .select()
-        .from(schema.products)
-        .where(
-          and(
-            inArray(schema.products.id, ids),
-            eq(schema.products.tenantId, tenant.id),
-            eq(schema.products.active, true),
-          ),
-        );
-      const byId = new Map(rows.map((p) => [p.id, p]));
-
-      let totalCents = 0;
-      const lines: { product: schema.Product; qty: number }[] = [];
+      // Collapse repeated product IDs before validating totals/stock. Otherwise
+      // the same cart item could bypass the per-line stock check.
+      const quantities = new Map<number, number>();
       for (const item of input.items) {
-        const product = byId.get(item.productId);
-        if (!product) {
+        const quantity = (quantities.get(item.productId) ?? 0) + item.qty;
+        if (quantity > 99) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "One of the items is no longer available.",
+            message: "The total quantity of an item cannot exceed 99.",
           });
         }
-        if (product.kind === "product" && product.stock < item.qty) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `Not enough stock for ${product.name}.`,
-          });
-        }
-        totalCents += product.priceCents * item.qty;
-        lines.push({ product, qty: item.qty });
+        quantities.set(item.productId, quantity);
       }
 
-      const [orderResult] = await db.insert(schema.orders).values({
-        tenantId: tenant.id,
-        customerName: input.customerName,
-        customerEmail: input.customerEmail,
-        customerPhone: input.customerPhone ?? null,
-        note: input.note ?? null,
-        totalCents,
+      const db = getDb();
+      return db.transaction(async (tx) => {
+        const ids = [...quantities.keys()];
+        const rows = await tx
+          .select()
+          .from(schema.products)
+          .where(
+            and(
+              inArray(schema.products.id, ids),
+              eq(schema.products.tenantId, tenant.id),
+              eq(schema.products.active, true),
+            ),
+          )
+          .for("update");
+        const byId = new Map(rows.map((product) => [product.id, product]));
+
+        let totalCents = 0;
+        const lines: { product: schema.Product; qty: number }[] = [];
+        for (const [productId, qty] of quantities) {
+          const product = byId.get(productId);
+          if (!product) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "One of the items is no longer available.",
+            });
+          }
+          if (product.kind === "product" && product.stock < qty) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Not enough stock for ${product.name}.`,
+            });
+          }
+          const lineTotal = product.priceCents * qty;
+          if (!Number.isSafeInteger(lineTotal) || !Number.isSafeInteger(totalCents + lineTotal)) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Order total is out of range." });
+          }
+          totalCents += lineTotal;
+          lines.push({ product, qty });
+        }
+
+        const [orderResult] = await tx.insert(schema.orders).values({
+          tenantId: tenant.id,
+          customerName: input.customerName,
+          customerEmail: input.customerEmail,
+          customerPhone: input.customerPhone ?? null,
+          note: input.note ?? null,
+          totalCents,
+        });
+        const orderId = Number(orderResult.insertId);
+
+        await tx.insert(schema.orderItems).values(
+          lines.map(({ product, qty }) => ({
+            orderId,
+            productId: product.id,
+            name: product.name,
+            priceCents: product.priceCents,
+            qty,
+          })),
+        );
+
+        for (const { product, qty } of lines) {
+          if (product.kind === "product") {
+            const [stockUpdate] = await tx
+              .update(schema.products)
+              .set({ stock: product.stock - qty })
+              .where(
+                and(
+                  eq(schema.products.id, product.id),
+                  eq(schema.products.tenantId, tenant.id),
+                  eq(schema.products.active, true),
+                  // Guard again in SQL to prevent overselling under concurrency.
+                  sql`stock >= ${qty}`,
+                ),
+              );
+            const affectedRows = Number(
+              (stockUpdate as unknown as { affectedRows?: number }).affectedRows ?? 0,
+            );
+            if (affectedRows !== 1) {
+              throw new TRPCError({
+                code: "CONFLICT",
+                message: `Stock changed for ${product.name}; please retry checkout.`,
+              });
+            }
+          }
+        }
+
+        return { orderId, totalCents };
       });
-      const orderId = Number(orderResult.insertId);
-
-      await db.insert(schema.orderItems).values(
-        lines.map(({ product, qty }) => ({
-          orderId,
-          productId: product.id,
-          name: product.name,
-          priceCents: product.priceCents,
-          qty,
-        })),
-      );
-
-      for (const { product, qty } of lines) {
-        if (product.kind === "product") {
-          await db
-            .update(schema.products)
-            .set({ stock: product.stock - qty })
-            .where(eq(schema.products.id, product.id));
-        }
-      }
-
-      return { orderId, totalCents };
     }),
 
   /** Guest can look up an order by id + email. */
