@@ -9,7 +9,7 @@ const SESSION_AUDIENCE = env.appId;
 export async function signSessionToken(
   payload: SessionPayload,
 ): Promise<string> {
-  const secret = new TextEncoder().encode(env.appSecret);
+  const secret = new TextEncoder().encode(env.sessionSecret);
   return new jose.SignJWT(payload)
     .setProtectedHeader({ alg: JWT_ALG, typ: "JWT" })
     .setIssuer(SESSION_ISSUER)
@@ -24,7 +24,7 @@ export async function verifySessionToken(
 ): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
-    const secret = new TextEncoder().encode(env.appSecret);
+    const secret = new TextEncoder().encode(env.sessionSecret);
     const { payload } = await jose.jwtVerify(token, secret, {
       algorithms: [JWT_ALG],
       issuer: SESSION_ISSUER,
