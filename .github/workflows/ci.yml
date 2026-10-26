@@ -45,4 +45,4 @@ jobs:
         run: npm run build
 
       - name: Audit high and critical dependency vulnerabilities
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=low
