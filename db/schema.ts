@@ -211,7 +211,7 @@ export const subscriptionPayments = mysqlTable(
     tranId: varchar("tranId", { length: 100 }),
     valId: varchar("valId", { length: 100 }),
     planId: varchar("planId", { length: 20 }),
-    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+    currency: varchar("currency", { length: 3 }).notNull().default("BDT"),
     status: mysqlEnum("status", ["INITIATED", "VALIDATED", "FAILED", "CANCELLED", "OFFLINE"])
       .notNull()
       .default("OFFLINE"),
