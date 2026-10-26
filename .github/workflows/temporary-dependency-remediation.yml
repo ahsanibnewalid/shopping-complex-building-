@@ -28,7 +28,14 @@ jobs:
         run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund --fetch-retries=5 --fetch-timeout=120000
 
       - name: Apply non-breaking dependency security fixes
-        run: npm audit fix --registry=https://registry.npmjs.org --no-fund --no-audit
+        run: |
+          set +e
+          npm audit fix --registry=https://registry.npmjs.org --no-fund --no-audit
+          status=$?
+          set -e
+          # npm exits 1 when it applied safe fixes but advisories remain that
+          # require separate review; retain the manifest changes for CI validation.
+          if [[ "$status" -gt 1 ]]; then exit "$status"; fi
 
       - name: Commit updated dependency manifests when changed
         run: |
