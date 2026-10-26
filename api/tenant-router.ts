@@ -362,45 +362,57 @@ export const tenantRouter = createRouter({
     .mutation(async ({ ctx, input }) => {
       await requireTenantRole(input.tenantId, ctx.user.id, "owner");
       const db = getDb();
-      const [target] = await db
-        .select()
-        .from(schema.tenantMembers)
-        .where(
-          and(
-            eq(schema.tenantMembers.id, input.memberId),
-            eq(schema.tenantMembers.tenantId, input.tenantId),
-          ),
-        )
-        .limit(1);
-      if (!target) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
-      }
-      if (target.role === "owner" && input.role !== "owner") {
-        const [ownerCount] = await db
-          .select({ n: sql<number>`count(*)` })
+      await db.transaction(async (tx) => {
+        // Serialize owner-role changes for this tenant so two concurrent
+        // demotions/removals cannot leave the shop without an owner.
+        const tenantRows = await tx
+          .select({ id: schema.tenants.id })
+          .from(schema.tenants)
+          .where(eq(schema.tenants.id, input.tenantId))
+          .for("update");
+        if (!tenantRows.length) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found." });
+        }
+        const [target] = await tx
+          .select()
           .from(schema.tenantMembers)
           .where(
             and(
+              eq(schema.tenantMembers.id, input.memberId),
               eq(schema.tenantMembers.tenantId, input.tenantId),
-              eq(schema.tenantMembers.role, "owner"),
+            ),
+          )
+          .limit(1);
+        if (!target) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
+        }
+        if (target.role === "owner" && input.role !== "owner") {
+          const [ownerCount] = await tx
+            .select({ n: sql<number>`count(*)` })
+            .from(schema.tenantMembers)
+            .where(
+              and(
+                eq(schema.tenantMembers.tenantId, input.tenantId),
+                eq(schema.tenantMembers.role, "owner"),
+              ),
+            );
+          if (Number(ownerCount?.n ?? 0) <= 1) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "A shop must keep at least one owner.",
+            });
+          }
+        }
+        await tx
+          .update(schema.tenantMembers)
+          .set({ role: input.role })
+          .where(
+            and(
+              eq(schema.tenantMembers.id, input.memberId),
+              eq(schema.tenantMembers.tenantId, input.tenantId),
             ),
           );
-        if (Number(ownerCount?.n ?? 0) <= 1) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "A shop must keep at least one owner.",
-          });
-        }
-      }
-      await db
-        .update(schema.tenantMembers)
-        .set({ role: input.role })
-        .where(
-          and(
-            eq(schema.tenantMembers.id, input.memberId),
-            eq(schema.tenantMembers.tenantId, input.tenantId),
-          ),
-        );
+      });
       return { ok: true };
     }),
 
@@ -414,45 +426,54 @@ export const tenantRouter = createRouter({
     .mutation(async ({ ctx, input }) => {
       await requireTenantRole(input.tenantId, ctx.user.id, "owner");
       const db = getDb();
-      const rows = await db
-        .select()
-        .from(schema.tenantMembers)
-        .where(
-          and(
-            eq(schema.tenantMembers.id, input.memberId),
-            eq(schema.tenantMembers.tenantId, input.tenantId),
-          ),
-        )
-        .limit(1);
-      const target = rows.at(0);
-      if (!target) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
-      }
-      if (target?.role === "owner") {
-        const owners = await db
-          .select({ n: sql<number>`count(*)` })
+      await db.transaction(async (tx) => {
+        const tenantRows = await tx
+          .select({ id: schema.tenants.id })
+          .from(schema.tenants)
+          .where(eq(schema.tenants.id, input.tenantId))
+          .for("update");
+        if (!tenantRows.length) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found." });
+        }
+        const [target] = await tx
+          .select()
           .from(schema.tenantMembers)
           .where(
             and(
+              eq(schema.tenantMembers.id, input.memberId),
               eq(schema.tenantMembers.tenantId, input.tenantId),
-              eq(schema.tenantMembers.role, "owner"),
+            ),
+          )
+          .limit(1);
+        if (!target) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
+        }
+        if (target.role === "owner") {
+          const [ownerCount] = await tx
+            .select({ n: sql<number>`count(*)` })
+            .from(schema.tenantMembers)
+            .where(
+              and(
+                eq(schema.tenantMembers.tenantId, input.tenantId),
+                eq(schema.tenantMembers.role, "owner"),
+              ),
+            );
+          if (Number(ownerCount?.n ?? 0) <= 1) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "A shop must keep at least one owner.",
+            });
+          }
+        }
+        await tx
+          .delete(schema.tenantMembers)
+          .where(
+            and(
+              eq(schema.tenantMembers.id, input.memberId),
+              eq(schema.tenantMembers.tenantId, input.tenantId),
             ),
           );
-        if (Number(owners.at(0)?.n ?? 0) <= 1) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "A shop must keep at least one owner.",
-          });
-        }
-      }
-      await db
-        .delete(schema.tenantMembers)
-        .where(
-          and(
-            eq(schema.tenantMembers.id, input.memberId),
-            eq(schema.tenantMembers.tenantId, input.tenantId),
-          ),
-        );
+      });
       return { ok: true };
     }),
 
