@@ -134,6 +134,8 @@ export const orders = mysqlTable(
     customerEmail: varchar("customerEmail", { length: 320 }).notNull(),
     customerPhone: varchar("customerPhone", { length: 60 }),
     note: text("note"),
+    /** SHA-256 digest of the one-time secret handed to the customer. */
+    trackingTokenHash: varchar("trackingTokenHash", { length: 64 }),
     totalCents: int("totalCents").notNull().default(0),
     status: mysqlEnum("status", [
       "new",
@@ -149,7 +151,10 @@ export const orders = mysqlTable(
       .notNull()
       .$onUpdate(() => new Date()),
   },
-  (t) => [index("idx_orders_tenant").on(t.tenantId, t.status)],
+  (t) => [
+    index("idx_orders_tenant").on(t.tenantId, t.status),
+    uniqueIndex("uq_orders_tracking_token_hash").on(t.trackingTokenHash),
+  ],
 );
 
 export type Order = typeof orders.$inferSelect;
