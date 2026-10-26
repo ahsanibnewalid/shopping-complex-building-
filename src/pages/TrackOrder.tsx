@@ -5,11 +5,11 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { formatMoney } from "@contracts/marketplace";
 
-/** Guest order tracking by order number + email. */
+/** Guest order tracking by order number and the one-time tracking secret. */
 export default function TrackOrder() {
   const [orderId, setOrderId] = useState("");
-  const [email, setEmail] = useState("");
-  const [lookup, setLookup] = useState<{ orderId: number; email: string } | null>(null);
+  const [trackingToken, setTrackingToken] = useState("");
+  const [lookup, setLookup] = useState<{ orderId: number; trackingToken: string } | null>(null);
 
   const result = trpc.orders.track.useQuery(lookup!, {
     enabled: !!lookup,
@@ -22,7 +22,7 @@ export default function TrackOrder() {
       <main className="mx-auto max-w-2xl px-4 py-16 sm:px-8">
         <h1 className="font-display text-5xl font-black tracking-tight">Track an order</h1>
         <p className="font-serif-body mt-3 text-lg text-[#555]">
-          The order number from your confirmation, plus the email you used.
+          Enter the order number and private tracking code shown after checkout.
         </p>
 
         <form
@@ -30,7 +30,10 @@ export default function TrackOrder() {
           onSubmit={(e) => {
             e.preventDefault();
             const id = Number(orderId);
-            if (Number.isFinite(id) && id > 0) setLookup({ orderId: id, email });
+            const token = trackingToken.trim();
+            if (Number.isSafeInteger(id) && id > 0 && token) {
+              setLookup({ orderId: id, trackingToken: token });
+            }
           }}
         >
           <input
@@ -43,10 +46,11 @@ export default function TrackOrder() {
           />
           <input
             required
-            type="email"
-            placeholder="Email used at checkout"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="Private tracking code"
+            value={trackingToken}
+            onChange={(e) => setTrackingToken(e.target.value)}
             className="h-12 w-full border border-[#111] px-4 outline-none focus:bg-[#f4f4f2]"
           />
           <button type="submit" className="btn-invert w-full" data-variant="solid">
@@ -59,7 +63,7 @@ export default function TrackOrder() {
         )}
         {lookup && result.error && (
           <p className="micro-label mt-8 text-red-700">
-            No order matches that number and email.
+            No order matches that number and tracking code.
           </p>
         )}
         {lookup && result.data && (
