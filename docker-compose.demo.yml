@@ -1,0 +1,23 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: bazarhub-demo-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: bazarhub_demo
+      MYSQL_USER: bazarhub_demo
+      MYSQL_PASSWORD: demo_db_only_change_me
+      MYSQL_ROOT_PASSWORD: demo_root_only_change_me
+    ports:
+      # Bind to loopback only; never expose this demo database to the internet.
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - bazarhub_demo_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  bazarhub_demo_data:
