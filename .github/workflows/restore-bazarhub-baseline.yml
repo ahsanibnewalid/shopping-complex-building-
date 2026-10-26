@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "Kimi_Agent_Complete Shopping Complex SaaS(1).zip"
+      - "scripts/restore-missing-baseline.mjs"
   workflow_dispatch:
 
 permissions:
@@ -33,8 +34,6 @@ jobs:
         run: |
           node scripts/restore-missing-baseline.mjs "Kimi_Agent_Complete Shopping Complex SaaS(1).zip"
       - name: Commit restored files and remove temporary archive
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           rm -f "Kimi_Agent_Complete Shopping Complex SaaS(1).zip"
           if [[ -n "$(git status --porcelain)" ]]; then
