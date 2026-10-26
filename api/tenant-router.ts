@@ -461,7 +461,9 @@ export const tenantRouter = createRouter({
   subscription: authedQuery
     .input(z.object({ tenantId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
-      await requireTenantRole(input.tenantId, ctx.user.id, "staff");
+      // Billing history is restricted to shop owners. Never return raw gateway
+      // payloads or validation IDs through the merchant-facing API.
+      await requireTenantRole(input.tenantId, ctx.user.id, "owner");
       const db = getDb();
       const subs = await db
         .select()
@@ -471,7 +473,18 @@ export const tenantRouter = createRouter({
       const sub = subs.at(0);
       if (!sub) return null;
       const payments = await db
-        .select()
+        .select({
+          id: schema.subscriptionPayments.id,
+          subscriptionId: schema.subscriptionPayments.subscriptionId,
+          amountCents: schema.subscriptionPayments.amountCents,
+          months: schema.subscriptionPayments.months,
+          note: schema.subscriptionPayments.note,
+          tranId: schema.subscriptionPayments.tranId,
+          planId: schema.subscriptionPayments.planId,
+          currency: schema.subscriptionPayments.currency,
+          status: schema.subscriptionPayments.status,
+          paidAt: schema.subscriptionPayments.paidAt,
+        })
         .from(schema.subscriptionPayments)
         .where(eq(schema.subscriptionPayments.subscriptionId, sub.id))
         .orderBy(desc(schema.subscriptionPayments.paidAt))
