@@ -12,6 +12,7 @@ import {
   type TenantRole,
 } from "@contracts/marketplace";
 import { authedQuery, createRouter } from "./middleware";
+import { hasRequiredTenantRole } from "./lib/tenant-permissions";
 import { getDb } from "./queries/connection";
 import {
   findMembership,
@@ -19,15 +20,13 @@ import {
   listMembershipsForUser,
 } from "./queries/marketplace";
 
-const ROLE_RANK: Record<TenantRole, number> = { staff: 1, manager: 2, owner: 3 };
-
 async function requireTenantRole(
   tenantId: number,
   userId: number,
   minRole: TenantRole,
 ) {
   const membership = await findMembership(tenantId, userId);
-  if (!membership || ROLE_RANK[membership.role] < ROLE_RANK[minRole]) {
+  if (!membership || !hasRequiredTenantRole(membership.role, minRole)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You don't have permission to manage this shop.",
@@ -308,7 +307,7 @@ export const tenantRouter = createRouter({
   listMembers: authedQuery
     .input(z.object({ tenantId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
-      await requireTenantRole(input.tenantId, ctx.user.id, "staff");
+      await requireTenantRole(input.tenantId, ctx.user.id, "manager");
       return listMembersOfTenant(input.tenantId);
     }),
 
@@ -418,9 +417,17 @@ export const tenantRouter = createRouter({
       const rows = await db
         .select()
         .from(schema.tenantMembers)
-        .where(eq(schema.tenantMembers.id, input.memberId))
+        .where(
+          and(
+            eq(schema.tenantMembers.id, input.memberId),
+            eq(schema.tenantMembers.tenantId, input.tenantId),
+          ),
+        )
         .limit(1);
       const target = rows.at(0);
+      if (!target) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
+      }
       if (target?.role === "owner") {
         const owners = await db
           .select({ n: sql<number>`count(*)` })
