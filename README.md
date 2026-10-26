@@ -10,6 +10,8 @@
 </p>
 
 <p align="center">
+  <a href="#the-pitch">Overview</a> ·
+  <a href="#feature-availability--transparent-and-up-to-date">Feature status</a> ·
   <a href="#product-highlights">Product</a> ·
   <a href="#who-its-for">Who it's for</a> ·
   <a href="#technology">Technology</a> ·
@@ -18,6 +20,86 @@
 </p>
 
 > **Project status:** Active development. This repository is a work in progress, not a claim of production readiness. The visuals in this README are **illustrative product concepts**, not screenshots captured from a running deployment. Check the current code and tests before using it for live customers, orders, or payments.
+
+<p align="center">
+  <img src="docs/assets/bazarhub-feature-preview.svg" alt="Illustrative BazarHub marketplace, merchant workspace and agency workflow mockups" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Stage-Active%20Development-f59e0b?style=for-the-badge" alt="Active development" />
+  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-2563eb?style=for-the-badge" alt="React and TypeScript" />
+  <img src="https://img.shields.io/badge/API-Hono%20%2B%20tRPC-0f766e?style=for-the-badge" alt="Hono and tRPC" />
+  <img src="https://img.shields.io/badge/Database-MySQL-475569?style=for-the-badge" alt="MySQL" />
+</p>
+
+> **Visual disclaimer:** The preview above and the existing SVG diagrams are **illustrative mockups**, not screenshots of a deployed or verified product. Feature availability below describes repository code, not a production service-level guarantee.
+
+## The pitch
+
+**Turn a physical shopping complex into a discoverable digital destination.** BazarHub connects a shared customer-facing marketplace with independent merchant storefronts and operational dashboards. It is designed for retail shops, showrooms, service providers, agencies, and shopping-complex operators.
+
+**For operators:** centralize participating merchants and marketplace oversight. **For merchants:** showcase offerings, manage products and orders, and collaborate with staff. **For shoppers:** discover shops and products in one place.
+
+### See the experience at a glance
+
+| Marketplace | Merchant workspace | Service business |
+| :---: | :---: | :---: |
+| 🛍️ **Discover** | 📦 **Operate** | 📅 **Connect** |
+| Shop and product browsing | Catalog, orders, roles | Lead inquiries and booking requests |
+| Shared directory and search | Storefront themes and billing foundations | Staff-facing lead and booking panels |
+
+### Feature availability — transparent and up to date
+
+The following reflects the **development branch**, not a completed deployment.
+
+| Capability | Code status | What it means |
+| --- | --- | --- |
+| Marketplace directory and product discovery | **Implemented foundation** | Browse shops and product listings through existing marketplace routes. |
+| Merchant storefronts and themes | **Implemented foundation** | Tenant-specific shop pages and theme configuration. |
+| Merchant product and order management | **Implemented foundation** | Product and order workflows in merchant dashboard and APIs. |
+| Tenant teams and roles | **Partial** | Owner/manager/staff membership and authorization logic; full permission audit pending. |
+| Subscriptions and SSLCommerz | **Partial** | Billing and payment integration foundation; sandbox verification required. |
+| Lead inquiry and CRM | **New code — unverified** | Public inquiry form and staff lead-management panel. |
+| Service appointment requests | **New code — unverified** | Public booking request form and staff status dashboard; scheduling conflict prevention remains outstanding. |
+| Verified-purchase reviews | **Backend foundation — unverified** | Review API and database tables; full customer UI and end-to-end verification pending. |
+| Cross-store cart and checkout | **Planned** | Current checkout is tenant-specific, not a unified multi-merchant purchase. |
+| Unified customer accounts | **Planned** | Shared customer identity and purchase history across stores. |
+| Real-time customer–merchant chat | **Planned** | Messaging and notifications. |
+| Complex-wide promotions | **Planned** | Coordinated campaigns, offers, and coupons. |
+| Advanced no-code storefront builder | **Planned** | Rich visual layouts and content editing beyond existing themes. |
+| Agency portfolios and analytics enhancements | **Planned / partial** | Rich case-study templates and expanded reporting. |
+
+### How the platform fits together
+
+```mermaid
+flowchart TD
+  C["Customers"] --> M["Shared marketplace"]
+  M --> S["Independent storefronts"]
+  S --> O["Shop products & orders"]
+  S --> A["Agency inquiries & booking requests"]
+  T["Merchant teams"] --> D["Tenant dashboard"]
+  D --> O
+  D --> A
+  P["Platform operator"] --> X["Administration & subscription oversight"]
+  X --> S
+```
+
+*The diagram shows product architecture and workflows; it is not proof that every integration is live.*
+
+### What a client can evaluate today
+
+1. **Store discovery:** marketplace and shop listing routes.
+2. **Merchant operations:** dashboard screens for catalog, orders, themes, team, and billing.
+3. **Agency workflows:** recently added inquiry and booking screens, pending build and database validation.
+4. **Platform oversight:** administrative tenant and subscription management foundations.
+
+**Suggested demonstration path:** `/` → `/products` → `/shops/:slug` → `/dashboard` → `/admin`. Protected routes require appropriate authentication and permissions. There is no verified public demo URL in this README.
+
+### Screenshots and demo policy
+
+When a running environment has been verified, replace illustrative previews with **real, sanitized screenshots** of the marketplace, product detail, merchant dashboard, agency booking flow, and admin console. Do not publish customer information, access tokens, payment secrets, or fabricated sales metrics. Add a real demo URL only after deployment and smoke testing.
+
+---
 
 ## What is BazarHub?
 
@@ -33,9 +115,9 @@ Each participating shop, showroom, company, or agency can have its own storefron
 
 ### Product highlights
 
-- **Central product discovery** — a shared place to search and browse products, shops, brands, and offers.
+- **Central product discovery** — shared shop and product browsing; complex-wide offers are planned, not yet implemented.
 - **Independent merchant storefronts** — each merchant can present its own business identity and catalogue.
-- **Store design direction** — theme, template, and CMS-style customization are part of the product vision; confirm which options are currently implemented before promising them to merchants.
+- **Store design direction** — basic theme configuration exists; advanced visual builders and CMS-style customization are planned.
 - **Merchant workspace** — foundations for managing products, orders, and shop operations.
 - **Team roles** — owner, manager, and staff-style access is part of the intended workflow; role permissions must be verified against the current implementation.
 - **Platform operations** — a central administration experience for overseeing the marketplace and its merchants.
@@ -124,6 +206,10 @@ The following controls are part of the security hardening work. Do not deploy th
 - **Operational protection:** configure rate limiting for sign-in, guest checkout, order tracking, and payment initiation at the trusted edge/reverse proxy. The application should not trust arbitrary client-supplied forwarding headers for client identity. Also configure TLS, secret rotation, database backups, restore drills, error monitoring, and an incident contact before launch.
 
 The CI dependency audit should be treated as a release gate, not merely a high-severity alert. Review and test every dependency override against the installed lockfile before relaxing any audit threshold.
+
+## Development milestones and release gates
+
+The lead CRM, booking requests, and reviews API have been added on this feature branch, but require migration, compile, test, and security verification. The new SQL files under `db/migrations/` should be reviewed against the actual database and migration runner before applying them. No new feature should be presented as production-ready until its workflows are exercised end to end.
 
 ## Roadmap
 
