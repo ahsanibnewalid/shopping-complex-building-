@@ -1,0 +1,118 @@
+/* Platform chrome styles — marketplace shell only (tenant storefronts are
+   themed via CSS variables injected per-shop). */
+
+.font-display {
+  font-family: "Archivo", system-ui, sans-serif;
+}
+.font-serif-body {
+  font-family: "Newsreader", Georgia, serif;
+}
+.font-mono-label {
+  font-family: "DM Mono", ui-monospace, monospace;
+}
+
+/* Micro uppercase label — the platform's signature voice */
+.micro-label {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Bordered button that inverts on hover (reference pattern) */
+.btn-invert {
+  font-family: "DM Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid #111;
+  padding: 12px 24px;
+  background: transparent;
+  color: #111;
+  cursor: pointer;
+  transition:
+    background-color 180ms ease-out,
+    color 180ms ease-out;
+}
+.btn-invert:hover {
+  background: #111;
+  color: #fff;
+}
+.btn-invert:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+.btn-invert:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-invert[data-variant="solid"] {
+  background: #111;
+  color: #fff;
+}
+.btn-invert[data-variant="solid"]:hover {
+  background: transparent;
+  color: #111;
+}
+
+/* Nav link with expanding underline */
+.nav-link {
+  position: relative;
+  transition: color 180ms ease-out;
+}
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 1px;
+  width: 0;
+  background: currentColor;
+  transition: width 220ms ease-out;
+}
+.nav-link:hover::after,
+.nav-link:focus-visible::after {
+  width: 100%;
+}
+
+/* Themed storefront surface */
+.shop-theme {
+  background: var(--t-bg);
+  color: var(--t-ink);
+  min-height: 100dvh;
+}
+.shop-theme .t-display {
+  font-family: var(--t-font-display);
+}
+.shop-theme .t-body {
+  font-family: var(--t-font-body);
+}
+.shop-theme .t-label {
+  font-family: var(--t-font-label);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.shop-theme .t-border {
+  border-color: var(--t-border);
+}
+.shop-theme .t-surface {
+  background: var(--t-surface);
+}
+.shop-theme .t-muted {
+  color: var(--t-muted);
+}
+.shop-theme .t-accent {
+  background: var(--t-accent);
+  color: var(--t-accent-ink);
+}
+.shop-theme .t-radius {
+  border-radius: var(--t-radius);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link::after,
+  .btn-invert {
+    transition: none;
+  }
+}
