@@ -30,7 +30,7 @@ jobs:
           cache: npm
 
       - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund --fetch-retries=5 --fetch-timeout=120000
 
       - name: TypeScript checks
         run: npm run check
