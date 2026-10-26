@@ -1,7 +1,7 @@
 # BazarHub — Shopping Complex SaaS
 
 <p align="center">
-  <img src="docs/assets/bazarhub-platform-overview.svg" alt="BazarHub product concept: a shared marketplace and independent merchant workspaces" width="100%" />
+  <img src="docs/assets/bazarhub-editorial-preview.svg" alt="BazarHub product concept: a shared marketplace and independent merchant workspaces" width="100%" />
 </p>
 
 <p align="center">
@@ -21,18 +21,7 @@
 
 > **Project status:** Active development. This repository is a work in progress, not a claim of production readiness. The visuals in this README are **illustrative product concepts**, not screenshots captured from a running deployment. Check the current code and tests before using it for live customers, orders, or payments.
 
-<p align="center">
-  <img src="docs/assets/bazarhub-feature-preview.svg" alt="Illustrative BazarHub marketplace, merchant workspace and agency workflow mockups" width="100%" />
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Stage-Active%20Development-f59e0b?style=for-the-badge" alt="Active development" />
-  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-2563eb?style=for-the-badge" alt="React and TypeScript" />
-  <img src="https://img.shields.io/badge/API-Hono%20%2B%20tRPC-0f766e?style=for-the-badge" alt="Hono and tRPC" />
-  <img src="https://img.shields.io/badge/Database-MySQL-475569?style=for-the-badge" alt="MySQL" />
-</p>
-
-> **Visual disclaimer:** The preview above and the existing SVG diagrams are **illustrative mockups**, not screenshots of a deployed or verified product. Feature availability below describes repository code, not a production service-level guarantee.
+> **Design note:** The preview above follows the actual homepage styling: white background, black borders, oversized editorial typography, minimal navigation, and directory-first layout. It is an illustrative composition based on `src/pages/Home.tsx`, not a screenshot.
 
 ## The pitch
 
@@ -109,9 +98,7 @@ Each participating shop, showroom, company, or agency can have its own storefron
 
 ## Product overview
 
-<p align="center">
-  <img src="docs/assets/bazarhub-workflow.svg" alt="BazarHub workflow concept for customers, merchants, and platform administrators" width="100%" />
-</p>
+The architecture diagram above explains how customers, merchants, and operators interact. The visual preview intentionally matches the monochrome storefront design.
 
 ### Product highlights
 
