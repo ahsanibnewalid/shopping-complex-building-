@@ -111,6 +111,20 @@ Because this is intended to be a multi-tenant platform, production work should v
 - secrets are stored in environment configuration and never committed;
 - database migrations and backup/restore procedures are tested before importing live data.
 
+## Production hardening and deployment gates
+
+The following controls are part of the security hardening work. Do not deploy the new application code before applying its database migration and verifying the configured identity/payment providers.
+
+- **OAuth:** sign-in must begin at `/api/oauth/start`. The server issues a short-lived, HttpOnly state cookie and validates the callback state; configure `APP_BASE_URL` to the canonical HTTPS origin registered with the identity provider. Newly issued sessions expire after seven days. Existing sessions without the new issuer/audience claims will need to sign in again after rollout.
+- **Order tracking:** new guest orders receive a random one-time tracking code. Only its SHA-256 digest is stored; the plaintext code is returned once at checkout. Customers must keep it private. Existing orders created before this migration have no code and need merchant-assisted lookup.
+- **Database migration:** back up the database and apply `db/migrations/20261028_order_tracking_token.sql` before deploying the application build that references `trackingTokenHash`. Verify the unique index and test order creation/tracking in staging first.
+- **Tenant authorization:** staff cannot read team-member lists or billing history; billing history is restricted to the shop owner and omits raw gateway responses. Public homepage counts include active tenants only.
+- **Payment validation:** successful SSLCommerz processing requires matching transaction ID, validation ID, merchant store ID, BDT currency, and exact amount. Keep gateway credentials in server-side secrets only.
+- **API hardening:** responses include baseline browser security headers, API responses are marked non-cacheable, and tRPC request bodies are capped at 1 MiB. Confirm the production proxy and any external upload flow do not depend on larger API bodies.
+- **Operational protection:** configure rate limiting for sign-in, guest checkout, order tracking, and payment initiation at the trusted edge/reverse proxy. The application should not trust arbitrary client-supplied forwarding headers for client identity. Also configure TLS, secret rotation, database backups, restore drills, error monitoring, and an incident contact before launch.
+
+The CI dependency audit should be treated as a release gate, not merely a high-severity alert. Review and test every dependency override against the installed lockfile before relaxing any audit threshold.
+
 ## Roadmap
 
 The following are product-development priorities, not a declaration that every item is complete:
