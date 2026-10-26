@@ -13,7 +13,7 @@ export default function CartPage() {
   const placeOrder = trpc.orders.create.useMutation();
 
   const [form, setForm] = useState({ name: "", email: "", phone: "", note: "" });
-  const [placed, setPlaced] = useState<{ orderId: number; totalCents: number } | null>(null);
+  const [placed, setPlaced] = useState<{ orderId: number; totalCents: number; trackingToken: string } | null>(null);
 
   const themeId = shop.data?.themeId ?? "archive";
 
@@ -58,9 +58,17 @@ export default function CartPage() {
             <p className="t-label t-muted">Order confirmed</p>
             <p className="t-display mt-4 text-6xl font-black">#{placed.orderId}</p>
             <p className="t-body mt-4 text-lg opacity-80">
-              Total {formatMoney(placed.totalCents)}. The shop has your order —
-              keep this number and your email to track it.
+              Total {formatMoney(placed.totalCents)}. The shop has your order. Save the order number and private tracking code below to check its status.
             </p>
+            <div className="t-border mt-6 border p-4 text-left">
+              <p className="t-label t-muted">Private tracking code — shown once</p>
+              <code className="mt-2 block break-all text-sm" aria-label="Private order tracking code">
+                {placed.trackingToken}
+              </code>
+              <p className="t-label t-muted mt-3">
+                Keep this code private. Anyone who has it and the order number can view the order status and items.
+              </p>
+            </div>
             <div className="mt-8 flex justify-center gap-4">
               <Link to="/track-order" className="t-label t-border t-radius border px-4 py-3">
                 Track this order

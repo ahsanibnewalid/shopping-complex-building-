@@ -111,17 +111,38 @@ export async function complexStats() {
     .select({ n: sql<number>`count(*)` })
     .from(schema.tenants)
     .where(eq(schema.tenants.status, "active"));
+
+  // Public aggregate statistics must exclude products and orders belonging to
+  // pending or suspended tenants, otherwise lifecycle-hidden merchant activity
+  // leaks through the marketplace homepage.
   const [productCount] = await db
     .select({ n: sql<number>`count(*)` })
     .from(schema.products)
-    .where(eq(schema.products.active, true));
+    .innerJoin(schema.tenants, eq(schema.products.tenantId, schema.tenants.id))
+    .where(
+      and(
+        eq(schema.products.active, true),
+        eq(schema.tenants.status, "active"),
+      ),
+    );
+
   const [orderCount] = await db
     .select({ n: sql<number>`count(*)` })
-    .from(schema.orders);
+    .from(schema.orders)
+    .innerJoin(schema.tenants, eq(schema.orders.tenantId, schema.tenants.id))
+    .where(eq(schema.tenants.status, "active"));
+
   const categories = await db
     .selectDistinct({ category: schema.products.category })
     .from(schema.products)
-    .where(eq(schema.products.active, true));
+    .innerJoin(schema.tenants, eq(schema.products.tenantId, schema.tenants.id))
+    .where(
+      and(
+        eq(schema.products.active, true),
+        eq(schema.tenants.status, "active"),
+      ),
+    );
+
   return {
     shops: Number(shopCount?.n ?? 0),
     products: Number(productCount?.n ?? 0),

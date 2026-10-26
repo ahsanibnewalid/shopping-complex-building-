@@ -12,6 +12,7 @@ import {
   type TenantRole,
 } from "@contracts/marketplace";
 import { authedQuery, createRouter } from "./middleware";
+import { hasRequiredTenantRole } from "./lib/tenant-permissions";
 import { getDb } from "./queries/connection";
 import {
   findMembership,
@@ -19,15 +20,13 @@ import {
   listMembershipsForUser,
 } from "./queries/marketplace";
 
-const ROLE_RANK: Record<TenantRole, number> = { staff: 1, manager: 2, owner: 3 };
-
 async function requireTenantRole(
   tenantId: number,
   userId: number,
   minRole: TenantRole,
 ) {
   const membership = await findMembership(tenantId, userId);
-  if (!membership || ROLE_RANK[membership.role] < ROLE_RANK[minRole]) {
+  if (!membership || !hasRequiredTenantRole(membership.role, minRole)) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You don't have permission to manage this shop.",
@@ -308,7 +307,7 @@ export const tenantRouter = createRouter({
   listMembers: authedQuery
     .input(z.object({ tenantId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
-      await requireTenantRole(input.tenantId, ctx.user.id, "staff");
+      await requireTenantRole(input.tenantId, ctx.user.id, "manager");
       return listMembersOfTenant(input.tenantId);
     }),
 
@@ -363,45 +362,57 @@ export const tenantRouter = createRouter({
     .mutation(async ({ ctx, input }) => {
       await requireTenantRole(input.tenantId, ctx.user.id, "owner");
       const db = getDb();
-      const [target] = await db
-        .select()
-        .from(schema.tenantMembers)
-        .where(
-          and(
-            eq(schema.tenantMembers.id, input.memberId),
-            eq(schema.tenantMembers.tenantId, input.tenantId),
-          ),
-        )
-        .limit(1);
-      if (!target) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
-      }
-      if (target.role === "owner" && input.role !== "owner") {
-        const [ownerCount] = await db
-          .select({ n: sql<number>`count(*)` })
+      await db.transaction(async (tx) => {
+        // Serialize owner-role changes for this tenant so two concurrent
+        // demotions/removals cannot leave the shop without an owner.
+        const tenantRows = await tx
+          .select({ id: schema.tenants.id })
+          .from(schema.tenants)
+          .where(eq(schema.tenants.id, input.tenantId))
+          .for("update");
+        if (!tenantRows.length) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found." });
+        }
+        const [target] = await tx
+          .select()
           .from(schema.tenantMembers)
           .where(
             and(
+              eq(schema.tenantMembers.id, input.memberId),
               eq(schema.tenantMembers.tenantId, input.tenantId),
-              eq(schema.tenantMembers.role, "owner"),
+            ),
+          )
+          .limit(1);
+        if (!target) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
+        }
+        if (target.role === "owner" && input.role !== "owner") {
+          const [ownerCount] = await tx
+            .select({ n: sql<number>`count(*)` })
+            .from(schema.tenantMembers)
+            .where(
+              and(
+                eq(schema.tenantMembers.tenantId, input.tenantId),
+                eq(schema.tenantMembers.role, "owner"),
+              ),
+            );
+          if (Number(ownerCount?.n ?? 0) <= 1) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "A shop must keep at least one owner.",
+            });
+          }
+        }
+        await tx
+          .update(schema.tenantMembers)
+          .set({ role: input.role })
+          .where(
+            and(
+              eq(schema.tenantMembers.id, input.memberId),
+              eq(schema.tenantMembers.tenantId, input.tenantId),
             ),
           );
-        if (Number(ownerCount?.n ?? 0) <= 1) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "A shop must keep at least one owner.",
-          });
-        }
-      }
-      await db
-        .update(schema.tenantMembers)
-        .set({ role: input.role })
-        .where(
-          and(
-            eq(schema.tenantMembers.id, input.memberId),
-            eq(schema.tenantMembers.tenantId, input.tenantId),
-          ),
-        );
+      });
       return { ok: true };
     }),
 
@@ -415,37 +426,54 @@ export const tenantRouter = createRouter({
     .mutation(async ({ ctx, input }) => {
       await requireTenantRole(input.tenantId, ctx.user.id, "owner");
       const db = getDb();
-      const rows = await db
-        .select()
-        .from(schema.tenantMembers)
-        .where(eq(schema.tenantMembers.id, input.memberId))
-        .limit(1);
-      const target = rows.at(0);
-      if (target?.role === "owner") {
-        const owners = await db
-          .select({ n: sql<number>`count(*)` })
+      await db.transaction(async (tx) => {
+        const tenantRows = await tx
+          .select({ id: schema.tenants.id })
+          .from(schema.tenants)
+          .where(eq(schema.tenants.id, input.tenantId))
+          .for("update");
+        if (!tenantRows.length) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found." });
+        }
+        const [target] = await tx
+          .select()
           .from(schema.tenantMembers)
           .where(
             and(
+              eq(schema.tenantMembers.id, input.memberId),
               eq(schema.tenantMembers.tenantId, input.tenantId),
-              eq(schema.tenantMembers.role, "owner"),
+            ),
+          )
+          .limit(1);
+        if (!target) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Team member not found." });
+        }
+        if (target.role === "owner") {
+          const [ownerCount] = await tx
+            .select({ n: sql<number>`count(*)` })
+            .from(schema.tenantMembers)
+            .where(
+              and(
+                eq(schema.tenantMembers.tenantId, input.tenantId),
+                eq(schema.tenantMembers.role, "owner"),
+              ),
+            );
+          if (Number(ownerCount?.n ?? 0) <= 1) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "A shop must keep at least one owner.",
+            });
+          }
+        }
+        await tx
+          .delete(schema.tenantMembers)
+          .where(
+            and(
+              eq(schema.tenantMembers.id, input.memberId),
+              eq(schema.tenantMembers.tenantId, input.tenantId),
             ),
           );
-        if (Number(owners.at(0)?.n ?? 0) <= 1) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "A shop must keep at least one owner.",
-          });
-        }
-      }
-      await db
-        .delete(schema.tenantMembers)
-        .where(
-          and(
-            eq(schema.tenantMembers.id, input.memberId),
-            eq(schema.tenantMembers.tenantId, input.tenantId),
-          ),
-        );
+      });
       return { ok: true };
     }),
 
@@ -454,7 +482,9 @@ export const tenantRouter = createRouter({
   subscription: authedQuery
     .input(z.object({ tenantId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
-      await requireTenantRole(input.tenantId, ctx.user.id, "staff");
+      // Billing history is restricted to shop owners. Never return raw gateway
+      // payloads or validation IDs through the merchant-facing API.
+      await requireTenantRole(input.tenantId, ctx.user.id, "owner");
       const db = getDb();
       const subs = await db
         .select()
@@ -464,7 +494,18 @@ export const tenantRouter = createRouter({
       const sub = subs.at(0);
       if (!sub) return null;
       const payments = await db
-        .select()
+        .select({
+          id: schema.subscriptionPayments.id,
+          subscriptionId: schema.subscriptionPayments.subscriptionId,
+          amountCents: schema.subscriptionPayments.amountCents,
+          months: schema.subscriptionPayments.months,
+          note: schema.subscriptionPayments.note,
+          tranId: schema.subscriptionPayments.tranId,
+          planId: schema.subscriptionPayments.planId,
+          currency: schema.subscriptionPayments.currency,
+          status: schema.subscriptionPayments.status,
+          paidAt: schema.subscriptionPayments.paidAt,
+        })
         .from(schema.subscriptionPayments)
         .where(eq(schema.subscriptionPayments.subscriptionId, sub.id))
         .orderBy(desc(schema.subscriptionPayments.paidAt))

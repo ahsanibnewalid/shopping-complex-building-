@@ -6,7 +6,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router";
 import { createContext } from "./context";
 import { env } from "./lib/env";
-import { createOAuthCallbackHandler } from "./kimi/auth";
+import { createOAuthCallbackHandler, createOAuthStartHandler } from "./kimi/auth";
 import { Paths } from "@contracts/constants";
 import { log } from "./lib/logger";
 import { handleClientLog } from "./lib/clientlog";
@@ -38,6 +38,16 @@ app.use("*", async (c, next) => {
     // c.header() called before dispatch is dropped on that path. Setting it on
     // the resolved c.res covers every route, including the tRPC one.
     c.res.headers.set(REQUEST_ID_HEADER, requestId);
+    c.res.headers.set("X-Content-Type-Options", "nosniff");
+    c.res.headers.set("X-Frame-Options", "DENY");
+    c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    c.res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    if (env.isProduction) {
+      c.res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    if (c.req.path.startsWith("/api/")) {
+      c.res.headers.set("Cache-Control", "no-store");
+    }
     // Only /api/* is logged. In production serveStaticFiles() registers a
     // catch-all AFTER this middleware, so a page load pulls in every asset as
     // its own request — logging those would bury the API calls the agent reads
@@ -59,7 +69,8 @@ app.use("*", async (c, next) => {
 // rebuild throw `TypeError: Cannot read private member #state ...`, so every
 // bodyless request (DELETE/PATCH on the app's own REST routes) 500s at dispatch.
 // /api/log keeps its own 64KB caps in lib/clientlog.ts, so it needs no middleware.
-app.use("/api/trpc/*", bodyLimit({ maxSize: 50 * 1024 * 1024 }));
+app.use("/api/trpc/*", bodyLimit({ maxSize: 1 * 1024 * 1024 }));
+app.get("/api/oauth/start", createOAuthStartHandler());
 app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 app.use("/api/trpc/*", async (c) => {
   return fetchRequestHandler({
