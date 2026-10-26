@@ -41,7 +41,8 @@ async function processVerifiedPayment(valId: string, tranId: string) {
   const response = validation as SSLCommerzValidation;
   const statusValid = response.status === "VALID" || response.status === "VALIDATED";
   const transactionMatches = asString(response.tran_id) === tranId;
-  const validationIdMatches = !response.val_id || asString(response.val_id) === valId;
+  const validationIdMatches = asString(response.val_id) === valId;
+  const storeIdMatches = asString(response.store_id) === (process.env.SSLCOMMERZ_STORE_ID ?? "").trim();
   const currencyMatches = asString(response.currency).toUpperCase() === "BDT";
   let amountMatches = false;
   try {
@@ -51,7 +52,7 @@ async function processVerifiedPayment(valId: string, tranId: string) {
     amountMatches = false;
   }
 
-  if (!statusValid || !transactionMatches || !validationIdMatches || !currencyMatches || !amountMatches) {
+  if (!statusValid || !transactionMatches || !validationIdMatches || !storeIdMatches || !currencyMatches || !amountMatches) {
     // Do not let an unauthenticated browser callback permanently fail a valid
     // attempt. Keep it pending so a genuine IPN/success callback can be retried.
     return { success: false as const, reason: "gateway_validation_failed" };
