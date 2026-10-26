@@ -1,7 +1,7 @@
 # BazarHub — Shopping Complex SaaS
 
 <p align="center">
-  <img src="docs/assets/bazarhub-platform-overview.svg" alt="BazarHub product concept: a shared marketplace and independent merchant workspaces" width="100%" />
+  <img src="docs/assets/bazarhub-editorial-preview.svg" alt="BazarHub product concept: a shared marketplace and independent merchant workspaces" width="100%" />
 </p>
 
 <p align="center">
@@ -10,6 +10,8 @@
 </p>
 
 <p align="center">
+  <a href="#the-pitch">Overview</a> ·
+  <a href="#feature-availability--transparent-and-up-to-date">Feature status</a> ·
   <a href="#product-highlights">Product</a> ·
   <a href="#who-its-for">Who it's for</a> ·
   <a href="#technology">Technology</a> ·
@@ -19,6 +21,75 @@
 </p>
 
 > **Project status:** Active development. This repository is a work in progress, not a claim of production readiness. The visuals in this README are **illustrative product concepts**, not screenshots captured from a running deployment. Check the current code and tests before using it for live customers, orders, or payments.
+
+> **Design note:** The editorial illustration above follows the actual homepage's monochrome layout and oversized typography. It is not a live screenshot.
+
+## The pitch
+
+**Turn a physical shopping complex into a discoverable digital destination.** BazarHub connects a shared customer-facing marketplace with independent merchant storefronts and operational dashboards. It is designed for retail shops, showrooms, service providers, agencies, and shopping-complex operators.
+
+**For operators:** centralize participating merchants and marketplace oversight. **For merchants:** showcase offerings, manage products and orders, and collaborate with staff. **For shoppers:** discover shops and products in one place.
+
+### See the experience at a glance
+
+| Marketplace | Merchant workspace | Service business |
+| :---: | :---: | :---: |
+| 🛍️ **Discover** | 📦 **Operate** | 📅 **Connect** |
+| Shop and product browsing | Catalog, orders, roles | Lead inquiries and booking requests |
+| Shared directory and search | Storefront themes and billing foundations | Staff-facing lead and booking panels |
+
+### Feature availability — transparent and up to date
+
+The following reflects the **development branch**, not a completed deployment.
+
+| Capability | Code status | What it means |
+| --- | --- | --- |
+| Marketplace directory and product discovery | **Implemented foundation** | Browse shops and product listings through existing marketplace routes. |
+| Merchant storefronts and themes | **Implemented foundation** | Tenant-specific shop pages and theme configuration. |
+| Merchant product and order management | **Implemented foundation** | Product and order workflows in merchant dashboard and APIs. |
+| Tenant teams and roles | **Partial** | Owner/manager/staff membership and authorization logic; full permission audit pending. |
+| Subscriptions and SSLCommerz | **Partial** | Billing and payment integration foundation; sandbox verification required. |
+| Lead inquiry and CRM | **New code — unverified** | Public inquiry form and staff lead-management panel. |
+| Service appointment requests | **New code — unverified** | Public booking request form and staff status dashboard; scheduling conflict prevention remains outstanding. |
+| Verified-purchase reviews | **Backend foundation — unverified** | Review API and database tables; full customer UI and end-to-end verification pending. |
+| Cross-store cart and checkout | **Planned** | Current checkout is tenant-specific, not a unified multi-merchant purchase. |
+| Unified customer accounts | **Planned** | Shared customer identity and purchase history across stores. |
+| Real-time customer–merchant chat | **Planned** | Messaging and notifications. |
+| Complex-wide promotions | **Planned** | Coordinated campaigns, offers, and coupons. |
+| Advanced no-code storefront builder | **Planned** | Rich visual layouts and content editing beyond existing themes. |
+| Agency portfolios and analytics enhancements | **Planned / partial** | Rich case-study templates and expanded reporting. |
+
+### How the platform fits together
+
+```mermaid
+flowchart TD
+  C["Customers"] --> M["Shared marketplace"]
+  M --> S["Independent storefronts"]
+  S --> O["Shop products & orders"]
+  S --> A["Agency inquiries & booking requests"]
+  T["Merchant teams"] --> D["Tenant dashboard"]
+  D --> O
+  D --> A
+  P["Platform operator"] --> X["Administration & subscription oversight"]
+  X --> S
+```
+
+*The diagram shows product architecture and workflows; it is not proof that every integration is live.*
+
+### What a client can evaluate today
+
+1. **Store discovery:** marketplace and shop listing routes.
+2. **Merchant operations:** dashboard screens for catalog, orders, themes, team, and billing.
+3. **Agency workflows:** recently added inquiry and booking screens, pending build and database validation.
+4. **Platform oversight:** administrative tenant and subscription management foundations.
+
+**Suggested demonstration path:** `/` → `/products` → `/shops/:slug` → `/dashboard` → `/admin`. Protected routes require appropriate authentication and permissions. There is no verified public demo URL in this README.
+
+### Screenshots and demo policy
+
+When a running environment has been verified, replace illustrative previews with **real, sanitized screenshots** of the marketplace, product detail, merchant dashboard, agency booking flow, and admin console. Do not publish customer information, access tokens, payment secrets, or fabricated sales metrics. Add a real demo URL only after deployment and smoke testing.
+
+---
 
 ## What is BazarHub?
 
