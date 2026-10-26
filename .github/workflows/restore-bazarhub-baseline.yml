@@ -32,7 +32,14 @@ jobs:
           node-version: 22
       - name: Restore missing files without overwriting existing files
         run: |
-          node scripts/restore-missing-baseline.mjs "Kimi_Agent_Complete Shopping Complex SaaS(1).zip"
+          if [[ -f "Kimi_Agent_Complete Shopping Complex SaaS(1).zip" ]]; then
+            node scripts/restore-missing-baseline.mjs "Kimi_Agent_Complete Shopping Complex SaaS(1).zip"
+          else
+            echo "The one-time archive has already been consumed; checking restored source tree."
+            test -f src/App.tsx
+            test -f src/main.tsx
+            test -f api/router.ts
+          fi
       - name: Commit restored files and remove temporary archive
         run: |
           rm -f "Kimi_Agent_Complete Shopping Complex SaaS(1).zip"
