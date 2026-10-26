@@ -1,3 +1,5 @@
+import { BookingForm } from "@/components/Bookings";
+import { InquiryForm } from "@/components/Leads";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { trpc } from "@/providers/trpc";
@@ -194,6 +196,8 @@ export default function Shop() {
             ))}
           </div>
         )}
+      {(s.businessType === "agency" || s.businessType === "company") && <InquiryForm shopSlug={s.slug} />}
+      <BookingForm shopSlug={s.slug} services={(products.data ?? []).filter(({product}) => product.kind === "service").map(({product}) => ({id:product.id,name:product.name}))} />
       </main>
 
       <footer className="t-border border-t">

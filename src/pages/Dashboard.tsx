@@ -1,3 +1,5 @@
+import { BookingsPanel } from "@/components/Bookings";
+import { LeadsPanel } from "@/components/Leads";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { trpc } from "@/providers/trpc";
@@ -10,7 +12,7 @@ import {
   type TenantRole,
 } from "@contracts/marketplace";
 
-const TABS = ["Overview", "Products", "Orders", "Theme", "Team", "Billing"] as const;
+const TABS = ["Overview", "Products", "Orders", "Theme", "Team", "Billing", "Leads", "Bookings"] as const;
 type Tab = (typeof TABS)[number];
 
 const emptyProduct = {
@@ -136,6 +138,8 @@ export default function Dashboard() {
                   onDone={() => utils.tenant.myShops.invalidate()} />
               )}
               {tab === "Team" && <TeamTab tenantId={selected.tenant.id} myRole={selected.member.role} myUserId={user.id} />}
+              {tab === "Bookings" && <BookingsPanel tenantId={selected.tenant.id} />}
+              {tab === "Leads" && <LeadsPanel tenantId={selected.tenant.id} />}
               {tab === "Billing" && <BillingTab tenantId={selected.tenant.id} myRole={selected.member.role} />}
             </div>
           </>
