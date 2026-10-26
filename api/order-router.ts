@@ -6,6 +6,7 @@ import { createRouter, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { findTenantBySlug } from "./queries/marketplace";
 import { aggregateCartQuantities } from "./lib/cart-quantities";
+import { createOrderTrackingCredentials, hashOrderTrackingToken } from "./lib/order-tracking";
 
 const checkoutItem = z.object({
   productId: z.number().int().positive(),
@@ -45,6 +46,7 @@ export const orderRouter = createRouter({
       }
 
       const db = getDb();
+      const tracking = createOrderTrackingCredentials();
       return db.transaction(async (tx) => {
         const ids = [...quantities.keys()];
         const rows = await tx
@@ -90,6 +92,7 @@ export const orderRouter = createRouter({
           customerEmail: input.customerEmail,
           customerPhone: input.customerPhone ?? null,
           note: input.note ?? null,
+          trackingTokenHash: tracking.tokenHash,
           totalCents,
         });
         const orderId = Number(orderResult.insertId);
@@ -130,35 +133,53 @@ export const orderRouter = createRouter({
           }
         }
 
-        return { orderId, totalCents };
+        // The plaintext token is returned only once; the database stores its digest.
+        return { orderId, totalCents, trackingToken: tracking.token };
       });
     }),
 
-  /** Guest can look up an order by id + email. */
+  /** Guest tracking requires the one-time secret returned at checkout. */
   track: publicQuery
     .input(
       z.object({
         orderId: z.number().int().positive(),
-        email: z.string().trim().email(),
+        trackingToken: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
       }),
     )
     .query(async ({ input }) => {
       const db = getDb();
+      const tokenHash = hashOrderTrackingToken(input.trackingToken);
       const rows = await db
-        .select({ order: schema.orders, tenant: { name: schema.tenants.name, slug: schema.tenants.slug } })
+        .select({
+          order: {
+            id: schema.orders.id,
+            status: schema.orders.status,
+            createdAt: schema.orders.createdAt,
+            totalCents: schema.orders.totalCents,
+          },
+          tenant: {
+            name: schema.tenants.name,
+            slug: schema.tenants.slug,
+          },
+        })
         .from(schema.orders)
         .innerJoin(schema.tenants, eq(schema.orders.tenantId, schema.tenants.id))
         .where(
           and(
             eq(schema.orders.id, input.orderId),
-            eq(schema.orders.customerEmail, input.email),
+            eq(schema.orders.trackingTokenHash, tokenHash),
           ),
         )
         .limit(1);
       const row = rows.at(0);
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
       const items = await db
-        .select()
+        .select({
+          id: schema.orderItems.id,
+          name: schema.orderItems.name,
+          priceCents: schema.orderItems.priceCents,
+          qty: schema.orderItems.qty,
+        })
         .from(schema.orderItems)
         .where(eq(schema.orderItems.orderId, row.order.id))
         .orderBy(desc(schema.orderItems.id));
