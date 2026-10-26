@@ -48,6 +48,8 @@ export const marketplaceRouter = createRouter({
         location: tenant.location,
         contactEmail: tenant.contactEmail,
         phone: tenant.phone,
+        // Always "active" here: non-public lifecycle states are filtered above.
+        status: tenant.status,
       };
     }),
 
