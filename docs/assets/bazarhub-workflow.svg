@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+<title id="title">BazarHub product workflow</title><desc id="desc">Concept diagram showing customers discovering products, merchants managing stores, and platform operators managing the ecosystem.</desc>
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#17344d"/></linearGradient><linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2ee0bd"/><stop offset="1" stop-color="#48aaff"/></linearGradient></defs>
+<rect width="1200" height="360" rx="24" fill="url(#bg)"/>
+<g font-family="Inter,Segoe UI,Arial,sans-serif">
+<text x="52" y="54" font-size="15" font-weight="700" letter-spacing="2" fill="#6ce8d0">HOW THE PLATFORM FITS TOGETHER</text>
+<g>
+<rect x="52" y="91" width="300" height="200" rx="18" fill="#102b43" stroke="#34516a"/><circle cx="91" cy="132" r="20" fill="url(#a)"/><path d="M81 132h20m-10-10v20" stroke="#073148" stroke-width="3" stroke-linecap="round"/>
+<text x="123" y="128" fill="#f4f8fc" font-size="19" font-weight="700">Customer</text><text x="78" y="177" fill="#c2d2df" font-size="14">• Search products and shops</text><text x="78" y="204" fill="#c2d2df" font-size="14">• Compare merchant offers</text><text x="78" y="231" fill="#c2d2df" font-size="14">• Visit storefronts and order</text><rect x="78" y="254" width="200" height="22" rx="11" fill="#173e50"/><text x="92" y="269" fill="#6ce8d0" font-size="11" font-weight="700">CENTRAL MARKETPLACE</text>
+<path d="M367 191h44m-10-9 10 9-10 9" stroke="#6ce8d0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="425" y="91" width="350" height="200" rx="18" fill="#102b43" stroke="#34516a"/><circle cx="465" cy="132" r="20" fill="#9c8cff"/><path d="M454 136l11-12 11 12v9h-22z" stroke="#fff" stroke-width="2" fill="none" stroke-linejoin="round"/>
+<text x="497" y="128" fill="#f4f8fc" font-size="19" font-weight="700">Merchant / Shop</text><text x="451" y="177" fill="#c2d2df" font-size="14">• Build a branded storefront</text><text x="451" y="204" fill="#c2d2df" font-size="14">• Manage products and orders</text><text x="451" y="231" fill="#c2d2df" font-size="14">• Assign team roles</text><rect x="451" y="254" width="230" height="22" rx="11" fill="#2d2c55"/><text x="465" y="269" fill="#c3baff" font-size="11" font-weight="700">INDEPENDENT TENANT SPACE</text>
+<path d="M790 191h44m-10-9 10 9-10 9" stroke="#6ce8d0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="848" y="91" width="300" height="200" rx="18" fill="#102b43" stroke="#34516a"/><circle cx="887" cy="132" r="20" fill="#ffbd78"/><path d="M877 140v-14h20v14m-24 0h28m-17-14v-6h6v6" stroke="#4b2c19" stroke-width="2" fill="none" stroke-linejoin="round"/>
+<text x="919" y="128" fill="#f4f8fc" font-size="19" font-weight="700">Platform Admin</text><text x="874" y="177" fill="#c2d2df" font-size="14">• Oversee the ecosystem</text><text x="874" y="204" fill="#c2d2df" font-size="14">• Manage subscriptions</text><text x="874" y="231" fill="#c2d2df" font-size="14">• Review tenant activity</text><rect x="874" y="254" width="218" height="22" rx="11" fill="#4a3528"/><text x="888" y="269" fill="#ffd4a6" font-size="11" font-weight="700">PLATFORM OPERATIONS</text>
+</g><text x="52" y="329" fill="#90a9bc" font-size="12">Product workflow concept • specific capabilities depend on implementation and configuration</text>
+</g></svg>
