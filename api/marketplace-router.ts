@@ -28,8 +28,27 @@ export const marketplaceRouter = createRouter({
     .input(z.object({ slug: z.string().min(1).max(120) }))
     .query(async ({ input }) => {
       const tenant = await findTenantBySlug(input.slug);
-      if (!tenant) throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found" });
-      return tenant;
+      // Pending and suspended storefronts must never be discoverable through
+      // the public API, even when a visitor knows the slug.
+      if (!tenant || tenant.status !== "active") {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Shop not found" });
+      }
+      // Return only storefront fields; internal status/lifecycle metadata stays
+      // in the merchant and platform-admin workspaces.
+      return {
+        id: tenant.id,
+        slug: tenant.slug,
+        name: tenant.name,
+        tagline: tenant.tagline,
+        description: tenant.description,
+        businessType: tenant.businessType,
+        category: tenant.category,
+        themeId: tenant.themeId,
+        logoUrl: tenant.logoUrl,
+        location: tenant.location,
+        contactEmail: tenant.contactEmail,
+        phone: tenant.phone,
+      };
     }),
 
   /** Public: product search across the whole complex, or within one shop. */
