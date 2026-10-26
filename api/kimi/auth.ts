@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { setCookie } from "hono/cookie";
 import * as jose from "jose";
 import * as cookie from "cookie";
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createOAuthState, matchesOAuthState } from "../lib/oauth-state";
 import { env } from "../lib/env";
 import { getSessionCookieOptions } from "../lib/cookies";
 import { Session, Paths } from "@contracts/constants";
@@ -88,7 +88,7 @@ export function createOAuthStartHandler() {
   return async (c: Context) => {
     try {
       const redirectUri = oauthRedirectUri();
-      const state = randomBytes(32).toString("base64url");
+      const state = createOAuthState();
       const authorizeUrl = new URL("/api/oauth/authorize", env.kimiAuthUrl);
       authorizeUrl.searchParams.set("client_id", env.appId);
       authorizeUrl.searchParams.set("redirect_uri", redirectUri);
@@ -131,10 +131,7 @@ export function createOAuthCallbackHandler() {
 
     const cookies = cookie.parse(c.req.header("cookie") || "");
     const expectedState = cookies[OAUTH_STATE_COOKIE] || "";
-    const actual = Buffer.from(state);
-    const expected = Buffer.from(expectedState);
-    const stateMatches = actual.length === expected.length &&
-      actual.length > 0 && timingSafeEqual(actual, expected);
+    const stateMatches = matchesOAuthState(expectedState, state);
 
     setCookie(c, OAUTH_STATE_COOKIE, "", {
       httpOnly: true, secure: env.isProduction, sameSite: "Lax",
