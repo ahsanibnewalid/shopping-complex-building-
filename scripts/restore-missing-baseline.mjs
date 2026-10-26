@@ -4,7 +4,7 @@
  * project archive. Existing files are never overwritten, preserving newer
  * payment/security work already merged into main.
  *
- * Triggered from GitHub Actions or run locally; preserves existing files.
+ * Triggered from GitHub Actions or run locally; preserves existing files. Safe to rerun.
  * Usage: node scripts/restore-missing-baseline.mjs "/path/to/Kimi_Agent_Complete Shopping Complex SaaS.zip"
  */
 import { execFileSync } from "node:child_process";
