@@ -12,6 +12,6 @@ export function getSessionCookieOptions(headers: Headers): CookieOptions {
     httpOnly: true,
     path: "/",
     sameSite: "Lax",
-    secure: !localhost,
+    secure: !localhost || process.env.NODE_ENV === "production",
   };
 }
