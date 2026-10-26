@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS tenant_leads (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  tenantId BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(320) NOT NULL,
+  phone VARCHAR(60) NULL,
+  message TEXT NOT NULL,
+  status ENUM('new','contacted','proposal_sent','closed') NOT NULL DEFAULT 'new',
+  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_leads_tenant_status (tenantId, status),
+  CONSTRAINT fk_leads_tenant FOREIGN KEY (tenantId) REFERENCES tenants(id)
+);
